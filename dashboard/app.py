@@ -268,11 +268,6 @@ e["Severidad"] = e.apply(_severidad, axis=1)
 _SEV_ORDEN = {"Crítico": 0, "Alto": 1, "Medio": 2, "": 3}
 SEV_COLOR = {"Crítico": "#A8443B", "Alto": "#C2A878", "Medio": "#8A9BB5"}
 
-# Precio medio por unidad (de lo que SI se vendio) para estimar el USD inmovilizado
-_und_vend = e["Ventas_Cantidad"].sum()
-_precio_medio = (e["Ventas_USD"].sum() / _und_vend) if _und_vend else 0.0
-e["USD_Riesgo"] = e["Stock"] * _precio_medio * e["Low_Rotation"]
-
 if solo_low:
     e = e[e["Low_Rotation"]]
 
@@ -341,9 +336,8 @@ n_total = int(e["Low_Rotation"].sum())
 n_crit = int((e["Severidad"] == "Crítico").sum())
 n_alto = int((e["Severidad"] == "Alto").sum())
 n_medio = int((e["Severidad"] == "Medio").sum())
-und_riesgo = float(low["Stock"].sum())
-usd_riesgo = float(low["USD_Riesgo"].sum())
-pct_stock = und_riesgo / max(e["Stock"].sum(), 1)
+und_inmov = float(low["Stock"].sum())
+pct_stock = und_inmov / max(e["Stock"].sum(), 1)
 
 if n_total == 0:
     st.markdown(
@@ -371,8 +365,8 @@ else:
         _tarjeta("Crítico", f"{n_crit}", SEV_COLOR["Crítico"], "stock sin ventas"),
         _tarjeta("Alto", f"{n_alto}", SEV_COLOR["Alto"], "sell-through < 10%"),
         _tarjeta("Medio", f"{n_medio}", SEV_COLOR["Medio"], "sell-through < 20%"),
-        _tarjeta("USD en riesgo", f"${usd_riesgo:,.0f}", ACCENT,
-                 f"{und_riesgo:,.0f} uds · {pct_stock:.0%} del stock"),
+        _tarjeta("Unidades inmovilizadas", f"{und_inmov:,.0f}", ACCENT,
+                 f"{pct_stock:.0%} del stock total"),
     ]
     st.markdown(
         "<div style='display:flex;gap:14px;margin:6px 0 18px;'>"
@@ -381,7 +375,7 @@ else:
     )
 
     cols_low = [c for c in ["Severidad", "u_estilo", "u_categoria", "Stock",
-                            "Ventas_Cantidad", "SellThrough", "USD_Riesgo"]
+                            "Ventas_Cantidad", "SellThrough"]
                 if c in low.columns]
     low_disp = low[cols_low].copy()
     low_disp["u_estilo"] = low_disp["u_estilo"].astype(str)
@@ -400,7 +394,6 @@ else:
             "Stock": st.column_config.NumberColumn("Stock", format="%d"),
             "Ventas_Cantidad": st.column_config.NumberColumn("Unidades", format="%d"),
             "SellThrough": st.column_config.NumberColumn("Sell-through", format="percent"),
-            "USD_Riesgo": st.column_config.NumberColumn("USD en riesgo", format="$%d"),
         },
     )
 
