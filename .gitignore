@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Datos (se regeneran con el ETL, no se versionan)
+*.parquet
+
+# ETL: NO se publica (contiene credenciales internas y lógica de SQL Server)
+etl/
+.github/workflows/etl_semanal.yml
+.env.example
+
+
+# Secrets de Streamlit (la contraseña y la URI real nunca van a GitHub)
+.streamlit/secrets.toml
