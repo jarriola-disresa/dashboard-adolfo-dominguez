@@ -7,6 +7,7 @@ Muestra Ventas, Stock, Sell-through y Low Rotation, con vista de SEMANA y ACUMUL
 Ejecutar:  streamlit run app.py
 """
 
+import io
 import os
 import pandas as pd
 import plotly.express as px
@@ -161,6 +162,14 @@ try:
     st_autorefresh(interval=3600 * 1000, key="auto_recarga")
 except Exception:
     pass
+
+def _a_excel(df: pd.DataFrame, hoja: str = "Datos") -> bytes:
+    """Convierte un DataFrame a un archivo .xlsx en memoria (para descargar)."""
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name=hoja[:31])
+    return buffer.getvalue()
+
 
 ventas = cargar(COL_VENTAS)
 stock = cargar(COL_STOCK)
@@ -404,6 +413,12 @@ else:
             "USD_Riesgo": st.column_config.NumberColumn("USD en riesgo (est.)", format="$%d"),
         },
     )
+    st.download_button(
+        "Descargar baja rotación (Excel)",
+        data=_a_excel(low_disp, "Baja rotacion"),
+        file_name="baja_rotacion.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 
 st.divider()
 st.subheader("Detalle por estilo")
@@ -422,4 +437,10 @@ st.dataframe(
         "Ventas_USD": st.column_config.NumberColumn("Ventas USD", format="$%d"),
         "SellThrough": st.column_config.NumberColumn("Sell-through", format="percent"),
     },
+)
+st.download_button(
+    "Descargar detalle por estilo (Excel)",
+    data=_a_excel(det_disp, "Detalle por estilo"),
+    file_name="detalle_por_estilo.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 )
