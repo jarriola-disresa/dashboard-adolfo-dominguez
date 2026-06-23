@@ -268,6 +268,12 @@ e["Severidad"] = e.apply(_severidad, axis=1)
 _SEV_ORDEN = {"Crítico": 0, "Alto": 1, "Medio": 2, "": 3}
 SEV_COLOR = {"Crítico": "#A8443B", "Alto": "#C2A878", "Medio": "#8A9BB5"}
 
+# USD en riesgo (ESTIMADO): el stock no trae precio, usamos el precio promedio
+# de venta (USD vendidos / unidades vendidas) x unidades de stock inmovilizado.
+_und_vend = e["Ventas_Cantidad"].sum()
+_precio_medio = (e["Ventas_USD"].sum() / _und_vend) if _und_vend else 0.0
+e["USD_Riesgo"] = e["Stock"] * _precio_medio * e["Low_Rotation"]
+
 if solo_low:
     e = e[e["Low_Rotation"]]
 
@@ -323,8 +329,8 @@ st.caption("Estilos con stock vivo y sell-through bajo. "
            "Crítico: sin ventas · Alto: < 10% · Medio: < 20%")
 
 nivel_alerta = st.multiselect(
-    "Nivel de alerta", ["Crítico", "Alto", "Medio"],
-    help="Filtra los estilos por severidad. Vacío = todos.")
+    "Filtrar por Alerta", ["Crítico", "Alto", "Medio"],
+    help="Muestra solo los estilos de la(s) severidad(es) elegida(s). Vacío = todas.")
 
 low = e[e["Low_Rotation"]].copy()
 if nivel_alerta:
@@ -337,6 +343,7 @@ n_crit = int((e["Severidad"] == "Crítico").sum())
 n_alto = int((e["Severidad"] == "Alto").sum())
 n_medio = int((e["Severidad"] == "Medio").sum())
 und_inmov = float(low["Stock"].sum())
+usd_riesgo = float(low["USD_Riesgo"].sum())
 pct_stock = und_inmov / max(e["Stock"].sum(), 1)
 
 if n_total == 0:
@@ -365,8 +372,8 @@ else:
         _tarjeta("Crítico", f"{n_crit}", SEV_COLOR["Crítico"], "stock sin ventas"),
         _tarjeta("Alto", f"{n_alto}", SEV_COLOR["Alto"], "sell-through < 10%"),
         _tarjeta("Medio", f"{n_medio}", SEV_COLOR["Medio"], "sell-through < 20%"),
-        _tarjeta("Unidades inmovilizadas", f"{und_inmov:,.0f}", ACCENT,
-                 f"{pct_stock:.0%} del stock total"),
+        _tarjeta("USD en riesgo (est.)", f"${usd_riesgo:,.0f}", ACCENT,
+                 f"{und_inmov:,.0f} uds · {pct_stock:.0%} del stock"),
     ]
     st.markdown(
         "<div style='display:flex;gap:14px;margin:6px 0 18px;'>"
@@ -375,7 +382,7 @@ else:
     )
 
     cols_low = [c for c in ["Severidad", "u_estilo", "u_categoria", "Stock",
-                            "Ventas_Cantidad", "SellThrough"]
+                            "Ventas_Cantidad", "SellThrough", "USD_Riesgo"]
                 if c in low.columns]
     low_disp = low[cols_low].copy()
     low_disp["u_estilo"] = low_disp["u_estilo"].astype(str)
@@ -394,6 +401,7 @@ else:
             "Stock": st.column_config.NumberColumn("Stock", format="%d"),
             "Ventas_Cantidad": st.column_config.NumberColumn("Unidades", format="%d"),
             "SellThrough": st.column_config.NumberColumn("Sell-through", format="percent"),
+            "USD_Riesgo": st.column_config.NumberColumn("USD en riesgo (est.)", format="$%d"),
         },
     )
 
